@@ -74,36 +74,86 @@ class AvocadoClassifier {
             // Sort by probability (highest first)
             predictions.sort((a, b) => b.probability - a.probability);
 
-            // Get the top prediction
-            const topPrediction = predictions[0];
+            // --- NORMALIZATION LOGIC START ---
+            // Goal: Ensure Total Confidence is EXACTLY 100%
 
-            // Format results with realistic confidence 
-            // Add slight variation for more natural results
-            const addVariation = (prob) => {
-                // Add ±2% random variation
-                const variation = (Math.random() - 0.5) * 0.04;
-                const adjusted = prob + variation;
+            // 1. Determine Top Confidence (with slight variation for realism)
+            const topRaw = predictions[0].probability;
 
-                // Soft cap: probability diminishes as it approaches 1.0
-                // This mimics real ML models which are rarely 100% certain
-                const softCapped = adjusted > 0.92
-                    ? 0.92 + (adjusted - 0.92) * 0.3  // Compress high values
-                    : adjusted;
+            // Add ±1.5% variation
+            let variation = (Math.random() - 0.5) * 0.03;
+            let topAdjusted = topRaw + variation;
 
-                return Math.max(0.5, Math.min(0.98, softCapped));
-            };
+            // Clamp top confidence (40% - 98%)
+            if (topAdjusted > 0.98) topAdjusted = 0.98;
+            topAdjusted = Math.max(0.40, Math.min(0.98, topAdjusted));
 
-            return {
-                predictions: predictions.map(pred => ({
+            const topConfidenceInt = Math.round(topAdjusted * 100);
+
+            // 2. Calculate Remainder
+            const remainingPercentage = 100 - topConfidenceInt;
+
+            // 3. Distribute Remainder to other classes
+            const otherPredictions = predictions.slice(1);
+            let processedPredictions = [];
+
+            // Add Top Prediction
+            processedPredictions.push({
+                className: predictions[0].className,
+                probability: predictions[0].probability,
+                confidence: topConfidenceInt
+            });
+
+            // Add Other Predictions
+            const otherSumRaw = otherPredictions.reduce((sum, p) => sum + p.probability, 0);
+
+            otherPredictions.forEach(pred => {
+                let share;
+                if (otherSumRaw > 0) {
+                    // Proportional share
+                    share = (pred.probability / otherSumRaw) * remainingPercentage;
+                } else {
+                    // Equal split if all others are 0
+                    share = remainingPercentage / otherPredictions.length;
+                }
+
+                let conf = Math.round(share);
+                processedPredictions.push({
                     className: pred.className,
                     probability: pred.probability,
-                    confidence: Math.round(addVariation(pred.probability) * 100)
-                })),
+                    confidence: conf
+                });
+            });
+
+            // 4. Force Sum to EXACTLY 100% (Fix Rounding Errors)
+            const currentTotal = processedPredictions.reduce((sum, p) => sum + p.confidence, 0);
+            const diff = 100 - currentTotal;
+
+            if (diff !== 0 && processedPredictions.length > 1) {
+                // Adjust the SECOND prediction (index 1) to absorb the difference
+                // We keep the Top Prediction stable
+                processedPredictions[1].confidence += diff;
+
+                // Safety: prevent negative
+                if (processedPredictions[1].confidence < 0) {
+                    processedPredictions[0].confidence += processedPredictions[1].confidence;
+                    processedPredictions[1].confidence = 0;
+                }
+            }
+
+            // --- NORMALIZATION LOGIC END ---
+
+            // Final sort by confidence
+            processedPredictions.sort((a, b) => b.confidence - a.confidence);
+            const finalTopPrediction = processedPredictions[0];
+
+            return {
+                predictions: processedPredictions,
                 topPrediction: {
-                    className: topPrediction.className,
-                    probability: topPrediction.probability,
-                    confidence: Math.round(addVariation(topPrediction.probability) * 100),
-                    isConfident: topPrediction.probability >= CONFIG.CONFIDENCE_THRESHOLD
+                    className: finalTopPrediction.className,
+                    probability: finalTopPrediction.probability,
+                    confidence: finalTopPrediction.confidence,
+                    isConfident: finalTopPrediction.probability >= CONFIG.CONFIDENCE_THRESHOLD
                 }
             };
         } catch (error) {

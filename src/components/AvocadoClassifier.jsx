@@ -586,6 +586,46 @@ const AvocadoClassifier = () => {
                                         ⚠️ Low confidence - Try with better lighting or clearer image
                                     </p>
                                 )}
+
+                                {/* Visual Analysis Explanation */}
+                                <div style={{
+                                    marginTop: 'var(--spacing-md)',
+                                    textAlign: 'left',
+                                    background: 'var(--bg-primary)',
+                                    padding: 'var(--spacing-md)',
+                                    borderRadius: 'var(--radius-md)',
+                                    border: '1px solid var(--border-color)'
+                                }}>
+                                    <h3 style={{
+                                        fontSize: '0.9rem',
+                                        fontWeight: 600,
+                                        color: 'var(--text-primary)',
+                                        marginBottom: '0.5rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem'
+                                    }}>
+                                        💡 Analisis Visual
+                                    </h3>
+                                    <p style={{
+                                        fontSize: '0.875rem',
+                                        color: 'var(--text-secondary)',
+                                        lineHeight: 1.6,
+                                        margin: 0
+                                    }}>
+                                        {(() => {
+                                            const cls = result.topPrediction.className;
+                                            if (cls.includes('Matang') && !cls.includes('Setengah')) {
+                                                return "Berdasarkan analisis visual, alpukat ini memiliki karakteristik kematangan optimal. Warna kulit cenderung gelap (coklat tua/hitam) dan tekstur kulit khas buah matang. Siap dikonsumsi.";
+                                            } else if (cls.includes('Setengah')) {
+                                                return "Terdeteksi warna campuran antara hijau dan coklat. Alpukat ini sedang dalam fase transisi pematangan. Diperkirakan mencapai kematangan penuh dalam 1-2 hari pada suhu ruang.";
+                                            } else if (cls.includes('Mentah')) {
+                                                return "Warna dominan hijau cerah mengindikasikan alpukat ini belum matang. Daging buah kemungkinan masih keras. Simpan pada suhu ruang untuk proses pematangan.";
+                                            }
+                                            return "Hasil klasifikasi berdasarkan pola visual yang dipelajari model.";
+                                        })()}
+                                    </p>
+                                </div>
                             </div>
 
                             {/* All Predictions */}
