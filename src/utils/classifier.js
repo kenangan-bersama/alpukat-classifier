@@ -3,10 +3,10 @@ import * as tmImage from '@teachablemachine/image';
 
 // Configuration
 const CONFIG = {
-    // Check localStorage for custom model URL first
+    // Check localStorage for custom model URL first, otherwise use your default trained model
     MODEL_URL: typeof window !== 'undefined'
-        ? (localStorage.getItem('customModelUrl') || null)
-        : null,
+        ? (localStorage.getItem('customModelUrl') || 'https://teachablemachine.withgoogle.com/models/geFNsstXw/')
+        : 'https://teachablemachine.withgoogle.com/models/geFNsstXw/',
 
     // Classification labels (in Indonesian)
     LABELS: {
